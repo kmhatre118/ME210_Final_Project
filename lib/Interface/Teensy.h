@@ -57,8 +57,8 @@ class TeensyClass
     void driveForward();
     void driveBackward();
     void driveBackLeft();
-    void turnRight();
-    void turnLeft();
+    void turnRight(double speed);
+    void turnLeft(double speed);
     void brake();
     void driveForwardCurve();
     void driveBackwardCurve();

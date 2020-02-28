@@ -20,18 +20,18 @@ void TeensyClass::driveBackward() {
   teensy.motor_D.drive(-1);
 }
 
-void TeensyClass::turnLeft() {
-  teensy.motor_A.drive(-1);
-  teensy.motor_C.drive(-1);
-  teensy.motor_D.drive(1);
-  teensy.motor_B.drive(1);
+void TeensyClass::turnLeft(double speed) {
+  teensy.motor_A.drive(-speed);
+  teensy.motor_C.drive(-speed);
+  teensy.motor_D.drive(speed);
+  teensy.motor_B.drive(speed);
 }
 
-void TeensyClass::turnRight() {
-  teensy.motor_A.drive(1);
-  teensy.motor_C.drive(1);
-  teensy.motor_D.drive(-1);
-  teensy.motor_B.drive(-1);
+void TeensyClass::turnRight(double speed) {
+  teensy.motor_A.drive(speed);
+  teensy.motor_C.drive(speed);
+  teensy.motor_D.drive(-speed);
+  teensy.motor_B.drive(-speed);
 }
 
 void TeensyClass::brake() {
