@@ -16,7 +16,7 @@ typedef enum {
 IntervalTimer IR_Signal;
 volatile int lastIRsignal = 0;
 volatile bool facingSignal = false;
-const int IR_THRESHOLD = 300;
+const int IR_THRESHOLD = 100;
 States_t  state;
 
 //keeps track of which spot last read IR value should go
@@ -28,14 +28,18 @@ void setup() {
    state = FIND_BEACON;
 }
 
+int counter = 0;
+
 void loop() {
-  Serial.println(facingSignal);
-   if (TestForKey()) {
-      RespToKey();
-   }
-   delay(1000);
-   // Serial.println(teensy.left_enc.read());
-   // Serial.println(teensy.right_enc.read());
+
+ // Serial.println(facingSignal);
+  // Serial.println(facingSignal);
+  //  if (TestForKey()) {
+  //     RespToKey();
+  //  }
+  //  delay(1000);
+  //  Serial.println(teensy.left_enc.read());
+  //  Serial.println(teensy.right_enc.read());
 
    checkGlobalEvents();
    switch (state) {
@@ -60,7 +64,7 @@ void checkOffProcedure() {
   /*preliminary code to turn right, hit first wall, then drive and hit the second wall*/
    teensy.left_enc.readAndReset();
    teensy.right_enc.readAndReset();
-   while (teensy.left_enc.read() < 80 && teensy.right_enc.read() > -115) {
+   while (teensy.left_enc.read() < 70 && teensy.right_enc.read() > -100) {
     teensy.turnRight(1);
    }
    teensy.left_enc.readAndReset();
@@ -77,13 +81,14 @@ void checkOffProcedure() {
 }
 
 void readIRSignal() {
-  int IR_val = analogRead(21);
+  int IR_val = analogRead(IR_READ);
   if (arraySpot < 2) {
     last_IR_vals[arraySpot] = IR_val;
     arraySpot+= 1;
     return;
   }
-  if (abs(IR_val - last_IR_vals[0])> 300 ||abs(IR_val - last_IR_vals[1])> 300 ) {
+  if (abs(IR_val - last_IR_vals[0])> IR_THRESHOLD 
+  ||abs(IR_val - last_IR_vals[1])> IR_THRESHOLD ) {
     facingSignal = true;
   } else {
     facingSignal = false;
@@ -96,16 +101,20 @@ void oreintToBeacon() {
   int beaconCount = 0;
   while (!facingSignal) {
       teensy.turnLeft(0.5);
-    }
-  while (beaconCount < 2) {
-    while (facingSignal) {
-      teensy.turnRight(0.5);
-    }
-    while (!facingSignal) {
-      teensy.turnLeft(0.5);
-    }
-    beaconCount +=1;
+      delayMicroseconds(2);
   }
+  // while (beaconCount < 2) {
+  //   while (facingSignal) {
+  //     teensy.turnRight(0.5);
+  //     delayMicroseconds(2);
+
+  //   }
+  //   while (!facingSignal) {
+  //     teensy.turnLeft(0.5);
+  //     delayMicroseconds(2);
+  //   }
+  //   beaconCount +=1;
+ // }
   teensy.brake();
 
 }

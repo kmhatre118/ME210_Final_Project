@@ -52,7 +52,7 @@ class TeensyClass
     Motor motor_C = Motor(MOTOR_FORWARD_C, MOTOR_BACK_C);
     Motor motor_D = Motor(MOTOR_FORWARD_D, MOTOR_BACK_D);
     Encoder left_enc = Encoder(ENCODER_LEFT_A, ENCODER_LEFT_B);
-    Encoder right_enc = Encoder(ENCODER_RIGHT_B, ENCODER_RIGHT_A);
+    Encoder right_enc = Encoder(ENCODER_RIGHT_A, ENCODER_RIGHT_B);
 
     void driveForward();
     void driveBackward();
