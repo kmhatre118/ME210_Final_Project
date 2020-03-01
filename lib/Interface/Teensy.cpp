@@ -41,19 +41,19 @@ void TeensyClass::brake() {
    teensy.motor_D.brake();
 }
 
-void TeensyClass::driveBackwardCurve() {
+void TeensyClass::driveBackwardCurve(double speed) {
   teensy.motor_A.drive(-1);
   teensy.motor_C.drive(-1);
-  teensy.motor_D.drive(-.3);
-  teensy.motor_B.drive(-.3);
+  teensy.motor_D.drive(-speed);
+  teensy.motor_B.drive(-speed);
 
 }
 
-void TeensyClass::driveForwardCurve() {
+void TeensyClass::driveForwardCurve(double speed) {
    teensy.motor_A.drive(1);
    teensy.motor_C.drive(1);
-   teensy.motor_D.drive(.4);
-   teensy.motor_B.drive(.4);
+   teensy.motor_D.drive(speed);
+   teensy.motor_B.drive(speed);
 }
 void TeensyClass::begin() {
   pinMode(MOTOR_FORWARD_A, OUTPUT);
