@@ -1,6 +1,12 @@
 #include <Arduino.h>
 #include "Teensy.h"
 #include <Metro.h>
+
+
+#define LINE_LEFT_THRESH 200
+#define LINE_RIGHT_THRESH 110
+
+void turnRight(void);
 void RespToKey(void);
 uint8_t TestForKey(void);
 void readIRSignal(void);
@@ -8,14 +14,16 @@ void checkGlobalEvents(void);
 void oreintToBeacon(void);
 void checkOffProcedure(void);
 void calcPushState(void);
+int testForTape(void);
+void handleTape(int tape);
 
 typedef enum {
-  FIND_BEACON, STOP, CHECKOFF_PROCEDURE
+  FIND_BEACON, STOP, CHECKOFF_PROCEDURE, FORWARD, BACKWARD, FULL_FWD, FULL_BACK
 } States_t;
 
 
 typedef enum {
-  CLEAR, RESISTANCE
+  CLEAR, RESISTANCE_BACK, RESISTANCE_FWD
 } States_p;
 
 
@@ -25,11 +33,16 @@ IntervalTimer Encoder_Signal;
 
 volatile int lastIRsignal = 0;
 volatile bool facingSignal = false;
-const int IR_THRESHOLD = 100;
+const int IR_THRESHOLD = 50;
 States_t  state;
 States_p push_state;
 
 static Metro timer = Metro(1000);
+static Metro push_timer = Metro(2000);
+static Metro push_state_timer = Metro(2000);
+//static Metro game_timer = Metro(129000);
+static Metro game_timer = Metro(129000);
+
 
 //keeps track of which spot last read IR value should go
 volatile int arraySpot = 0;
@@ -40,6 +53,7 @@ void setup() {
    Encoder_Signal.begin(calcPushState, 1000000);
    state = FIND_BEACON;
    push_state = CLEAR;
+   game_timer.reset();
 }
 
 int counter = 0;
@@ -48,31 +62,149 @@ void loop() {
 
  // Serial.println(facingSignal);
   // Serial.println(facingSignal);
-   if (TestForKey()) {
-      RespToKey();
-   }
-   delay(1000);
+  //  if (TestForKey()) {
+  //     RespToKey();
+  //  }
+  //   delay(1000);
+  //   Serial.println(push_state);
+  //  Serial.println(analogRead(LINE_LEFT));
+  //  Serial.println(analogRead(LINE_RIGHT));
   //  Serial.println(teensy.left_enc.read());
   //  Serial.println(teensy.right_enc.read());
  // Serial.println(push_state);
 
-   checkGlobalEvents();
+   if (!game_timer.check()) {
+      checkGlobalEvents();
+   } else {
+     state = STOP;
+   }
    switch (state) {
      case (FIND_BEACON): {
        oreintToBeacon();
-       state = CHECKOFF_PROCEDURE;
+       turnRight();
+       state =FORWARD;
+       break;
      }
      case (CHECKOFF_PROCEDURE):
         checkOffProcedure();
         state = STOP;
+        break;
       case (STOP):
         teensy.brake();
-   }
+        break;
+      case (FORWARD):
+        teensy.driveForwardCurve(.4);
+        if (push_state == RESISTANCE_FWD ) {
+          state = FULL_FWD;
+          push_timer.reset();
+        }
+        break;
+      case (FULL_FWD): {
+        teensy.driveForward();
+        if (push_timer.check()) {
+          state = BACKWARD;
+         // rev_timer.reset();
+        }
+        break;
+      }
+      case (BACKWARD): {
+        teensy.driveBackwardCurve(.4);
+        if (push_state == RESISTANCE_BACK) {
+          state = FULL_BACK; //might be an issue here not enough time to reset to clear
+          push_timer.reset();
+        }
+        break;
+      }
+      case (FULL_BACK): {
+        teensy.driveBackward();
+        if (push_timer.check()) {
+          state = FORWARD;
+        }
+        break;
+      }
+  }
 
 }
 
 void checkGlobalEvents() {
-  //check for tape/line 
+  int tape = testForTape();
+  if (tape) {
+   // Serial.println("handling tape");
+    handleTape(tape);
+  }
+}
+
+
+void handleTape(int tape) {
+  push_state_timer.reset();
+  switch (tape) {
+    case 1: // inside triggered
+      if (state == FORWARD || FULL_FWD) {
+        teensy.driveBackward();
+        delay(500);
+        teensy.turnLeft(1);
+        delay(500);
+      } else if (state == BACKWARD || state == FULL_BACK) {
+        teensy.driveForward();
+        delay(500);
+        teensy.turnRight(1);
+        delay(500);
+      }
+      //if going forward turn left
+      //if going backward turn right
+      break;
+    case 2://outside triggered
+      if (state == FORWARD || state == FULL_FWD) {
+        teensy.driveBackward();
+        delay(500);
+        teensy.turnRight(1);
+        delay(500);
+        teensy.brake();
+        break;
+      } else if (state == BACKWARD || FULL_BACK) {
+        teensy.driveForward();
+        delay(500);
+        teensy.turnLeft(1);
+        delay(500);
+        teensy.brake();
+      }
+      break;
+            //if going forward turn right
+      //if going backward turn left
+
+    case 3: //both triggered
+      //switch directions
+      return;
+  }
+
+}
+
+
+//0 - nothing triggered
+//1 - inside triggered
+//2 - outside triggered
+//3 - both triggered
+int testForTape() {
+  int left = analogRead(LINE_LEFT);
+  int right = analogRead(LINE_RIGHT);
+  if (left < LINE_LEFT_THRESH && right > LINE_RIGHT_THRESH ) {
+    return 2;
+  } else if (left > LINE_LEFT_THRESH && right < LINE_RIGHT_THRESH) {
+    return 1;
+  } else if (left < LINE_LEFT_THRESH && right < LINE_RIGHT_THRESH) {
+    return 3;
+  } else {
+    return 0;
+  }
+} 
+
+void turnRight() {
+   teensy.left_enc.readAndReset();
+   teensy.right_enc.readAndReset();
+   while (teensy.left_enc.read() < 50 && teensy.right_enc.read() > -80) {
+    teensy.turnRight(1);
+   }
+   teensy.brake();
 }
 
 void checkOffProcedure() {
@@ -84,12 +216,12 @@ void checkOffProcedure() {
    }
    teensy.left_enc.readAndReset();
    teensy.right_enc.readAndReset();
-   while (teensy.left_enc.read() < 140 && teensy.right_enc.read() < 75) {
+   while (teensy.left_enc.read() < 170 && teensy.right_enc.read() < 95) {
       teensy.driveForwardCurve(.4);
    }
    teensy.left_enc.readAndReset();
    teensy.right_enc.readAndReset();
-   while (teensy.left_enc.read() > -380 ) {
+   while (teensy.left_enc.read() > -400 ) {
       teensy.driveBackwardCurve(.3);
    }
    teensy.brake();
@@ -113,23 +245,23 @@ void readIRSignal() {
 }
 
 void oreintToBeacon() {
-  //int beaconCount = 0;
+  int beaconCount = 0;
   while (!facingSignal) {
-      teensy.turnLeft(0.5);
+      teensy.turnLeft(0.6);
       delayMicroseconds(2);
   }
-  // while (beaconCount < 2) {
-  //   while (facingSignal) {
-  //     teensy.turnRight(0.5);
-  //     delayMicroseconds(2);
+  while (beaconCount < 2) {
+    while (facingSignal) {
+      teensy.turnRight(0.5);
+      delayMicroseconds(2);
 
-  //   }
-  //   while (!facingSignal) {
-  //     teensy.turnLeft(0.5);
-  //     delayMicroseconds(2);
-  //   }
-  //   beaconCount +=1;
- // }
+    }
+    while (!facingSignal) {
+      teensy.turnLeft(0.5);
+      delayMicroseconds(2);
+    }
+    beaconCount +=1;
+ }
   teensy.brake();
 
 }
@@ -138,9 +270,17 @@ volatile int lastEncoderValue = 0;
 const int PUSH_THRESHOLD = 30;
 void calcPushState() {
   int val = teensy.left_enc.read();
- 
-  if (abs(val - lastEncoderValue) < PUSH_THRESHOLD) {
-    push_state = RESISTANCE;
+ // Serial.println(abs(val - lastEncoderValue));
+ int diff = val - lastEncoderValue;
+ if (!push_state_timer.check()) {
+   return;
+   lastEncoderValue = val;
+ }
+  if (diff > 0 && diff < PUSH_THRESHOLD) {
+    push_state = RESISTANCE_FWD;
+  
+  }else if (diff < 0 && abs(diff) < PUSH_THRESHOLD) {
+      push_state = RESISTANCE_BACK;
   } else {
     push_state = CLEAR;
   }

@@ -19,8 +19,8 @@
 #define MOTOR_BACK_B  16 //MOTOR B
 #define MOTOR_BACK_D  23 //MOTOR C
 #define MOTOR_BACK_C  9 //MOTOR D
-#define LINE_LEFT       0
-#define LINE_RIGHT      1
+#define LINE_LEFT       A0
+#define LINE_RIGHT      A1
 #define PRESS_FRONT     14 //REMOVE?
 #define PRESS_BACK      15 //REMOVE?
 #define IR_READ         21
