@@ -5,6 +5,8 @@
 
 #define LINE_LEFT_THRESH 200
 #define LINE_RIGHT_THRESH 110
+#define PUSH_THRESHOLD  30
+#define IR_THRESHOLD  50
 
 void turnRight(void);
 void RespToKey(void);
@@ -33,12 +35,11 @@ IntervalTimer Encoder_Signal;
 
 volatile int lastIRsignal = 0;
 volatile bool facingSignal = false;
-const int IR_THRESHOLD = 50;
 States_t  state;
 States_p push_state;
 
 static Metro timer = Metro(1000);
-static Metro push_timer = Metro(2000);
+static Metro push_timer = Metro(3000);
 static Metro push_state_timer = Metro(2000);
 //static Metro game_timer = Metro(129000);
 static Metro game_timer = Metro(129000);
@@ -103,14 +104,13 @@ void loop() {
         teensy.driveForward();
         if (push_timer.check()) {
           state = BACKWARD;
-         // rev_timer.reset();
         }
         break;
       }
       case (BACKWARD): {
         teensy.driveBackwardCurve(.4);
         if (push_state == RESISTANCE_BACK) {
-          state = FULL_BACK; //might be an issue here not enough time to reset to clear
+          state = FULL_BACK; 
           push_timer.reset();
         }
         break;
@@ -250,24 +250,23 @@ void oreintToBeacon() {
       teensy.turnLeft(0.6);
       delayMicroseconds(2);
   }
-  while (beaconCount < 2) {
-    while (facingSignal) {
-      teensy.turnRight(0.5);
-      delayMicroseconds(2);
+//   while (beaconCount < 2) {
+//     while (facingSignal) {
+//       teensy.turnRight(0.5);
+//       delayMicroseconds(2);
 
-    }
-    while (!facingSignal) {
-      teensy.turnLeft(0.5);
-      delayMicroseconds(2);
-    }
-    beaconCount +=1;
- }
+//     }
+//     while (!facingSignal) {
+//       teensy.turnLeft(0.5);
+//       delayMicroseconds(2);
+//     }
+//     beaconCount +=1;
+//  }
   teensy.brake();
 
 }
 
 volatile int lastEncoderValue = 0;
-const int PUSH_THRESHOLD = 30;
 void calcPushState() {
   int val = teensy.left_enc.read();
  // Serial.println(abs(val - lastEncoderValue));
