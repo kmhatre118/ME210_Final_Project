@@ -74,55 +74,55 @@ void loop() {
   //  Serial.println(teensy.right_enc.read());
  // Serial.println(push_state);
 
-   if (!game_timer.check()) {
-      checkGlobalEvents();
-   } else {
-     state = STOP;
-   }
-   switch (state) {
-     case (FIND_BEACON): {
-       oreintToBeacon();
-       turnRight();
-       state =FORWARD;
-       break;
-     }
-     case (CHECKOFF_PROCEDURE):
-        checkOffProcedure();
-        state = STOP;
-        break;
-      case (STOP):
-        teensy.brake();
-        break;
-      case (FORWARD):
-        teensy.driveForwardCurve(.4);
-        if (push_state == RESISTANCE_FWD ) {
-          state = FULL_FWD;
-          push_timer.reset();
-        }
-        break;
-      case (FULL_FWD): {
-        teensy.driveForward();
-        if (push_timer.check()) {
-          state = BACKWARD;
-        }
-        break;
-      }
-      case (BACKWARD): {
-        teensy.driveBackwardCurve(.4);
-        if (push_state == RESISTANCE_BACK) {
-          state = FULL_BACK; 
-          push_timer.reset();
-        }
-        break;
-      }
-      case (FULL_BACK): {
-        teensy.driveBackward();
-        if (push_timer.check()) {
-          state = FORWARD;
-        }
-        break;
-      }
-  }
+  //  if (!game_timer.check()) {
+  //     checkGlobalEvents();
+  //  } else {
+  //    state = STOP;
+  //  }
+  //  switch (state) {
+  //    case (FIND_BEACON): {
+  //      oreintToBeacon();
+  //      turnRight();
+  //      state =FORWARD;
+  //      break;
+  //    }
+  //    case (CHECKOFF_PROCEDURE):
+  //       checkOffProcedure();
+  //       state = STOP;
+  //       break;
+  //     case (STOP):
+  //       teensy.brake();
+  //       break;
+  //     case (FORWARD):
+  //       teensy.driveForwardCurve(.4);
+  //       if (push_state == RESISTANCE_FWD ) {
+  //         state = FULL_FWD;
+  //         push_timer.reset();
+  //       }
+  //       break;
+  //     case (FULL_FWD): {
+  //       teensy.driveForward();
+  //       if (push_timer.check()) {
+  //         state = BACKWARD;
+  //       }
+  //       break;
+  //     }
+  //     case (BACKWARD): {
+  //       teensy.driveBackwardCurve(.4);
+  //       if (push_state == RESISTANCE_BACK) {
+  //         state = FULL_BACK; 
+  //         push_timer.reset();
+  //       }
+  //       break;
+  //     }
+  //     case (FULL_BACK): {
+  //       teensy.driveBackward();
+  //       if (push_timer.check()) {
+  //         state = FORWARD;
+  //       }
+  //       break;
+  //     }
+  // }
 
 }
 
@@ -229,6 +229,7 @@ void checkOffProcedure() {
 
 void readIRSignal() {
   int IR_val = analogRead(IR_READ);
+  Serial.println(IR_val);
   if (arraySpot < 2) {
     last_IR_vals[arraySpot] = IR_val;
     arraySpot+= 1;
@@ -245,7 +246,7 @@ void readIRSignal() {
 }
 
 void oreintToBeacon() {
-  int beaconCount = 0;
+  //int beaconCount = 0;
   while (!facingSignal) {
       teensy.turnLeft(0.6);
       delayMicroseconds(2);
